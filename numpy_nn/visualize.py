@@ -69,3 +69,36 @@ def plot_loss_curve(loss_history, title="Training Loss", save_path=None):
         plt.show()
 
     plt.close()
+
+
+def plot_confusion_matrix(y_true, y_pred, title="Confusion Matrix", save_path=None):
+    """
+    Plot a confusion matrix showing true vs predicted labels.
+    """
+    tp = np.sum((y_pred == 1) & (y_true == 1))
+    tn = np.sum((y_pred == 0) & (y_true == 0))
+    fp = np.sum((y_pred == 1) & (y_true == 0))
+    fn = np.sum((y_pred == 0) & (y_true == 1))
+
+    matrix = np.array([[tn, fp], [fn, tp]])
+
+    plt.figure(figsize=(5, 4))
+    plt.imshow(matrix, cmap="Blues")
+    plt.title(title)
+    plt.colorbar()
+    plt.xticks([0, 1], ["Predicted 0", "Predicted 1"])
+    plt.yticks([0, 1], ["Actual 0", "Actual 1"])
+
+    for i in range(2):
+        for j in range(2):
+            plt.text(j, i, str(matrix[i, j]), ha="center", va="center",
+                      color="white" if matrix[i, j] > matrix.max() / 2 else "black",
+                      fontsize=14)
+
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches="tight")
+        print(f"Saved plot to {save_path}")
+    else:
+        plt.show()
+    plt.close()
+

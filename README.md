@@ -1,52 +1,132 @@
-# Neural Network Implementation (Week 3)
+# Neural Net
 
-This project contains implementations of a neural network from scratch using `numpy` and a deep learning model using `pytorch`.
+A from-first-principles study of how neural networks learn — implemented twice: once by hand in NumPy to understand every gradient calculation, and once in PyTorch to apply the same ideas with production-grade tooling. Includes a controlled experiment isolating the effect of network capacity and learning rate on convergence.
 
-## Project Structure
+## Results at a glance
 
-```text
-week3-neural-network/
-│
-├── numpy_nn/                 # Neural Network from scratch using NumPy
-│   ├── __init__.py
-│   ├── network.py            # Neural network architecture, layers, forward/backward passes
-│   ├── activations.py        # Activation functions (ReLU, Sigmoid, Softmax, etc.) and derivatives
-│   ├── losses.py             # Loss functions (MSE, Cross Entropy, etc.) and derivatives
-│   ├── metrics.py            # Evaluation metrics (Accuracy, F1-Score, etc.)
-│   └── visualize.py          # Plotting loss curves, decision boundaries, etc.
-│
-├── pytorch_nn/               # Neural Network implementation using PyTorch
-│   ├── __init__.py
-│   ├── model.py              # PyTorch model definitions
-│   ├── train.py              # Training loop script
-│   └── evaluate.py           # Evaluation script
-│
-├── tests/                    # Unit tests for verification
-│   ├── __init__.py
-│   ├── test_activations.py
-│   ├── test_losses.py
-│   ├── test_network.py
-│   └── test_metrics.py
-│
-├── data/                     # Dataset utilities
-│   ├── __init__.py
-│   └── dataset.py            # Data loading, generation, and preprocessing
-│
-├── reports/                  # Reports and analysis
-│   └── experiment_report.md  # Detailed writeup of experiments and comparisons
-│
-├── requirements.txt          # Python dependencies
-└── README.md                 # Project overview
+| Implementation | Test Accuracy | F1 Score |
+|---|---|---|
+| NumPy (from first principles) | 95.0% | — |
+| PyTorch | 94.5% | 0.945 |
+| PyTorch, best config (32 hidden units) | 98.5% | 0.985 |
+
+Both implementations were trained and evaluated on the same dataset and produced consistent results — the strongest signal that the manually derived backpropagation math is correct.
+
+## Why this project exists
+
+Frameworks like PyTorch compute gradients automatically. That's powerful, but it's easy to use `loss.backward()` without understanding what it's actually doing. This project builds the same network twice: once with every gradient written out by hand, once with PyTorch's autograd — so the automation could be checked against math that was already understood and verified independently.
+
+## Dataset
+
+scikit-learn's `make_moons`: two interleaving crescent-shaped classes, 1000 samples, 20% noise, 80/20 train/test split. Chosen specifically because no straight line can separate the two classes well — a network has to learn an actual curve, which is a meaningful test of whether non-linear learning is happening at all.
+
+## Project structure
+
+```
+neural-net/
+├── numpy_nn/
+│   ├── activations.py      # ReLU, sigmoid, and their derivatives
+│   ├── losses.py            # Binary cross-entropy and its derivative
+│   ├── network.py           # Forward pass, backpropagation, training loop
+│   ├── metrics.py           # Accuracy, precision, recall, F1
+│   └── visualize.py         # Decision boundary, loss curve, confusion matrix plots
+├── pytorch_nn/
+│   ├── model.py              # nn.Module network definition
+│   ├── train.py               # DataLoader-based training loop
+│   └── evaluate.py
+├── data/
+│   └── dataset.py             # Dataset generation and splitting
+├── tests/                      # 31 unit tests
+├── reports/
+│   ├── decision_boundary.png
+│   ├── loss_curve.png
+│   ├── confusion_matrix.png
+│   ├── experiment_comparison.png
+│   └── experiment_report.md
+├── run_experiments.py
+└── requirements.txt
 ```
 
-## Getting Started
+## Implementation 1: NumPy from first principles
 
-1. Install the required dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
+Architecture: 2 inputs → hidden layer (ReLU, 8 units) → 1 output (sigmoid). Trained with manually derived backpropagation and full-batch gradient descent for 1000 epochs.
 
-2. Run the tests to ensure everything is set up correctly:
-   ```bash
-   pytest
-   ```
+Every gradient in this implementation — including the neat simplification `dZ2 = A2 - y` that comes from combining the sigmoid and binary cross-entropy derivatives — was derived and verified before being written into code.
+
+**Results on held-out test data:**
+- Accuracy: 95.0%
+- Loss decreased steadily from 0.657 to 0.249 over training
+
+<p align="center">
+  <img src="reports/decision_boundary.png" width="45%">
+  <img src="reports/loss_curve.png" width="45%">
+</p>
+
+## Implementation 2: PyTorch
+
+The same architecture, rebuilt with `nn.Module`, `DataLoader` for mini-batch training, `BCELoss`, and SGD.
+
+**Results on held-out test data:**
+- Accuracy: 94.5% | Precision: 94.1% | Recall: 95.0% | F1: 94.5%
+
+Training and validation loss remained closely aligned throughout training, indicating the model generalized rather than memorized.
+
+<p align="center">
+  <img src="reports/confusion_matrix.png" width="45%">
+</p>
+
+## Experiment: what actually improves performance
+
+Three configurations were trained under identical conditions to isolate the effect of two hyperparameters:
+
+| Configuration | Hidden Units | Activation | Learning Rate | Accuracy | F1 |
+|---|---|---|---|---|---|
+| A — Baseline | 8 | ReLU | 0.1 | 98.0% | 0.980 |
+| B — Larger network | 32 | ReLU | 0.1 | **98.5%** | **0.985** |
+| C — High learning rate | 8 | ReLU | 1.0 | 96.5% | 0.965 |
+
+<p align="center">
+  <img src="reports/experiment_comparison.png" width="90%">
+</p>
+
+**Finding 1 — Capacity helps, with limits.** Quadrupling the hidden layer (Config B) gave a small but real accuracy gain. On a dataset this simple, the improvement is modest — the extra capacity would likely matter more on a harder problem.
+
+**Finding 2 — A high learning rate is a trap, not a shortcut.** Config C reached a low training loss faster than any other configuration, but its validation loss oscillated instead of settling, and it ended with the lowest accuracy of the three. A model that reaches low loss quickly isn't automatically the best model — how it got there matters.
+
+Full write-up: [reports/experiment_report.md](reports/experiment_report.md)
+
+## Testing
+
+```bash
+pytest tests/ -v
+```
+
+31 tests across activation functions, loss computation, the forward/backward pass, and evaluation metrics. All passing.
+
+## Setup and usage
+
+```bash
+git clone https://github.com/abdulrehman10raja/neural-net.git
+cd neural-net
+pip install -r requirements.txt
+```
+
+Train the NumPy model:
+```python
+from numpy_nn.network import NeuralNetwork
+from data.dataset import generate_dataset
+
+X_train, X_test, y_train, y_test = generate_dataset()
+model = NeuralNetwork(input_size=2, hidden_size=8)
+model.train(X_train, y_train, epochs=1000, learning_rate=0.1)
+```
+
+Train the PyTorch model:
+```bash
+python -m pytorch_nn.train
+```
+
+Run the full experiment suite:
+```bash
+python run_experiments.py
+```
