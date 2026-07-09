@@ -8,7 +8,7 @@ A from-first-principles study of how neural networks learn — implemented twice
 |---|---|---|
 | NumPy (from first principles) | 95.0% | — |
 | PyTorch | 94.5% | 0.945 |
-| PyTorch, best config (32 hidden units) | 98.5% | 0.985 |
+| PyTorch, best config (High LR) | 99.5% | 0.995 |
 
 Both implementations were trained and evaluated on the same dataset and produced consistent results — the strongest signal that the manually derived backpropagation math is correct.
 
@@ -77,13 +77,14 @@ Training and validation loss remained closely aligned throughout training, indic
 
 ## Experiment: what actually improves performance
 
-Three configurations were trained under identical conditions to isolate the effect of two hyperparameters:
+Four configurations were trained under identical conditions to isolate the effect of hyperparameters:
 
 | Configuration | Hidden Units | Activation | Learning Rate | Accuracy | F1 |
 |---|---|---|---|---|---|
-| A — Baseline | 8 | ReLU | 0.1 | 98.0% | 0.980 |
-| B — Larger network | 32 | ReLU | 0.1 | **98.5%** | **0.985** |
-| C — High learning rate | 8 | ReLU | 1.0 | 96.5% | 0.965 |
+| A — Baseline | 8 | ReLU | 0.1 | 97.5% | 0.975 |
+| B — Larger network | 32 | ReLU | 0.1 | 98.0% | 0.980 |
+| C — High learning rate | 8 | ReLU | 1.0 | **99.5%** | **0.995** |
+| D — Tanh Activation | 8 | Tanh | 0.1 | 96.0% | 0.960 |
 
 <p align="center">
   <img src="reports/experiment_comparison.png" width="90%">
@@ -91,7 +92,9 @@ Three configurations were trained under identical conditions to isolate the effe
 
 **Finding 1 — Capacity helps, with limits.** Quadrupling the hidden layer (Config B) gave a small but real accuracy gain. On a dataset this simple, the improvement is modest — the extra capacity would likely matter more on a harder problem.
 
-**Finding 2 — A high learning rate is a trap, not a shortcut.** Config C reached a low training loss faster than any other configuration, but its validation loss oscillated instead of settling, and it ended with the lowest accuracy of the three. A model that reaches low loss quickly isn't automatically the best model — how it got there matters.
+**Finding 2 — A high learning rate can be unstable.** Config C achieved 99.5% accuracy in this run, but earlier experiments showed it oscillating and producing lower accuracy (96.5%). High learning rates can be highly sensitive and less reproducible due to optimizer overshooting.
+
+**Finding 3 — Activation function choice matters.** Config D (Tanh) achieved only 96.0% accuracy. Tanh's saturating gradients at both extremes slow down learning compared to ReLU's constant gradient of 1 for positive inputs.
 
 Full write-up: [reports/experiment_report.md](reports/experiment_report.md)
 

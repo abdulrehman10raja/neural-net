@@ -56,9 +56,10 @@ if __name__ == "__main__":
     X_train, X_test, y_train, y_test = generate_dataset()
 
     configs = [
-        {"name": "A - Baseline",        "hidden_size": 8,  "activation": "relu", "learning_rate": 0.1},
-        {"name": "B - Bigger Network",  "hidden_size": 32, "activation": "relu", "learning_rate": 0.1},
-        {"name": "C - High LR",         "hidden_size": 8,  "activation": "relu", "learning_rate": 1.0},
+        {"name": "A - Baseline",         "hidden_size": 8,  "activation": "relu", "learning_rate": 0.1},
+        {"name": "B - Bigger Network",   "hidden_size": 32, "activation": "relu", "learning_rate": 0.1},
+        {"name": "C - High LR",          "hidden_size": 8,  "activation": "relu", "learning_rate": 1.0},
+        {"name": "D - Tanh Activation",  "hidden_size": 8,  "activation": "tanh", "learning_rate": 0.1},
     ]
 
     all_results = []
@@ -74,8 +75,8 @@ if __name__ == "__main__":
     for r in all_results:
         print(f"{r['name']:<20}{r['hidden_size']:<10}{r['activation']:<12}{r['learning_rate']:<8}{r['accuracy']:<8.4f}{r['f1']:<8.4f}")
 
-    # Side-by-side comparison of decision boundaries across all 3 configs
-    fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+    # Side-by-side comparison of decision boundaries across all configs
+    fig, axes = plt.subplots(1, len(configs), figsize=(6 * len(configs), 5))
     for ax, cfg, result in zip(axes, configs, all_results):
         model = SimpleNN(input_size=2, hidden_size=cfg["hidden_size"],
                           output_size=1, activation=cfg["activation"])
